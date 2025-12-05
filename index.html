@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BioLit Radar – PubMed Monitor</title>
+
+  <!-- Minimal professional styling -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    body { background: #f8f9fa; }
+    .container { margin-top: 40px; }
+    h1 { font-size: 32px; }
+    table { font-size: 14px; }
+    .pub-date { white-space: nowrap; }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1 class="mb-4">BioLit Radar – PubMed Articles</h1>
+
+    <!-- Search bar -->
+    <div class="input-group mb-3">
+      <input id="searchInput" type="text" class="form-control" placeholder="Search articles by title, journal, PMID...">
+      <button class="btn btn-outline-secondary" onclick="loadData()">Reload</button>
+    </div>
+
+    <!-- Table -->
+    <div class="table-responsive">
+      <table class="table table-striped table-bordered" id="articlesTable">
+        <thead class="table-dark">
+          <tr>
+            <th>Date</th>
+            <th>PMID</th>
+            <th>Title</th>
+            <th>Journal</th>
+            <th>Published</th>
+            <th>Link</th>
+          </tr>
+        </thead>
+        <tbody id="articlesBody">
+          <tr><td colspan="6" class="text-center">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+<script>
+  const API_URL = "http://localhost:5678/webhook/biolit-api";  
+  let articles = [];
+
+  async function loadData() {
+    document.getElementById("articlesBody").innerHTML =
+      "<tr><td colspan='6' class='text-center'>Loading...</td></tr>";
+
+    try {
+      const res = await fetch(API_URL);
+      articles = await res.json();
+      renderTable(articles);
+    } catch (err) {
+      document.getElementById("articlesBody").innerHTML =
+        `<tr><td colspan="6" class="text-danger text-center">Error loading data.</td></tr>`;
+      console.error(err);
+    }
+  }
+
+  function renderTable(data) {
+    const tbody = document.getElementById("articlesBody");
+    tbody.innerHTML = "";
+
+    if (data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center">No articles found.</td></tr>`;
+      return;
+    }
+
+    data.forEach(item => {
+      const row = `
+        <tr>
+          <td class="pub-date">${item.FechaEjecucion}</td>
+          <td>${item.PMID}</td>
+          <td>${item.Titulo}</td>
+          <td>${item.Journal}</td>
+          <td class="pub-date">${item.PubDate}</td>
+          <td><a href="${item.URL}" class="btn btn-sm btn-primary" target="_blank">View</a></td>
+        </tr>`;
+      tbody.innerHTML += row;
+    });
+  }
+
+  // Live search filter
+  document.getElementById("searchInput").addEventListener("input", function () {
+    const term = this.value.toLowerCase();
+    const filtered = articles.filter(a =>
+      a.Titulo.toLowerCase().includes(term) ||
+      a.Journal.toLowerCase().includes(term) ||
+      a.PMID.toString().includes(term)
+    );
+    renderTable(filtered);
+  });
+
+  // Load data on page start
+  loadData();
+</script>
+
+</body>
+</html>
